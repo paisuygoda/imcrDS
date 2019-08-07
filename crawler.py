@@ -8,6 +8,11 @@ import sys
 import random
 import shutil
 
+def dl(aapi, image, path, tag_path):
+	if not os.path.exists(path+image):
+		aapi.download(image, path)
+	shutil.copyfile(path+image, tag_path+image)
+
 def single_tag(api, aapi, search_tag, tag_dict):
 	print("New tag - " + search_tag +" - Start scraping")
 	print("----------------------------------------")
@@ -25,7 +30,7 @@ def single_tag(api, aapi, search_tag, tag_dict):
 	else:
 		next_qs = False
 	whileBreaker = False
-	# illust.idを識別したい、あと単ページに限りたい
+	# illust.idを識別したい
 	while next_qs:
 		print("Scraping page " + str(pageCount) + " (pic #" + str(30 * (pageCount - 1) + 1) + " - " + str(30 * pageCount) + ")")
 		pageCount += 1
@@ -39,7 +44,7 @@ def single_tag(api, aapi, search_tag, tag_dict):
 				else:
 					tag_dict[illust.tags[tag_no]['name']] = 1
 
-				if illust.tags[tag_no]['name'] == u"ホモ" or illust.tags[tag_no]['name'] == u"ゲイ" or illust.tags[tag_no]['name'] == u"腐向け":
+				if illust.tags[tag_no]['name'] == "ホモ" or illust.tags[tag_no]['name'] == "ゲイ" or illust.tags[tag_no]['name'] == "腐向け":
 					gayIllust =True
 
 			# ダウンロード
@@ -53,14 +58,9 @@ def single_tag(api, aapi, search_tag, tag_dict):
 			imgCount += 1
 			sleep(1+random.random()*2)
 			if illust.page_count == 1:
-				aapi.download(illust.image_urls.large, saving_direcory_path)
+				dl(aapi, illust.image_urls.large, dbpath, saving_direcory_path)
 			else:
-				for work_no in range(0, illust.page_count):
-					uwagakiStr = "    " + str(work_no+1) + "/" + str(illust.page_count)
-					sys.stdout.write("\r%s" % uwagakiStr)
-					aapi.download(illust.meta_pages[work_no].image_urls.large, saving_direcory_path)
-					sleep(1+random.random()*2)
-				sys.stdout.write("\n")
+				dl(aapi, illust.meta_pages[0].image_urls.large, dbpath, saving_direcory_path)
 		print(" ")
 		json_result = aapi.search_illust(req_auth=True, **next_qs)
 		if "next_url" in json_result:
