@@ -9,9 +9,10 @@ import random
 import shutil
 
 def dl(aapi, image, path, tag_path):
-	if not os.path.exists(path+image):
+	image_name = image.split("/")[-1]
+	if not os.path.exists(path+image_name):
 		aapi.download(image, path)
-	shutil.copyfile(path+image, tag_path+image)
+	shutil.copyfile(path+image_name, tag_path+image_name)
 
 def single_tag(api, aapi, search_tag, tag_dict):
 	print("New tag - " + search_tag +" - Start scraping")
@@ -104,7 +105,7 @@ for k, v in sorted(tag_dict.items(), key=lambda x: -x[1]):
 	if k in searchedTags:
 		continue
 	searchedTags[k] = 1
-	w.write(k + ", " + v)
+	w.write(k + ", " + str(v) + "\n")
 	if v < 100:
 		break
 
