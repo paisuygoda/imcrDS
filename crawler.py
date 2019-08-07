@@ -7,25 +7,39 @@ import os
 import sys
 import random
 import shutil
-
+# 途中で死んだときに経過を保存したい
 def dl(aapi, image, path, tag_path):
 	image_name = image.split("/")[-1]
 	if not os.path.exists(path+image_name):
+		print('Downloading Image ... ')
 		aapi.download(image, path)
+		sleep(3+random.random()*10)
+	else:
+		print('Existing Image ... ')
 	shutil.copyfile(path+image_name, tag_path+image_name)
 
-def single_tag(api, aapi, search_tag, tag_dict):
+def login():
+	# ログイン処理
+	print("Re-Logging in")
+	aapi = AppPixivAPI()
+	aapi.login("qwerty3600", "159357")
+	return aapi
+
+def single_tag(aapi, search_tag, tag_dict):
 	print("New tag - " + search_tag +" - Start scraping")
 	print("----------------------------------------")
 
 	# 検索から情報取得
 	saving_direcory_path = './pixiv_images/' + search_tag + "/"
 	dbpath = './pixivDB/'
-	imgCount = 1
 	pageCount = 1
 	if not os.path.exists(saving_direcory_path):
 		os.mkdir(saving_direcory_path)
-	json_result = aapi.search_illust(search_tag, search_target='exact_match_for_tags',req_auth=True)
+	try:
+		json_result = aapi.search_illust(search_tag, search_target='exact_match_for_tags',req_auth=True)
+	except:
+		print("Failed at " + search_tag)
+		raise Exception
 	if "next_url" in json_result:
 		next_qs = aapi.parse_qs(json_result.next_url)
 	else:
@@ -55,18 +69,27 @@ def single_tag(api, aapi, search_tag, tag_dict):
 				continue
 			if gayIllust:
 				continue
-			print('Downloading Image ... #' + str(imgCount))
-			imgCount += 1
-			sleep(1+random.random()*2)
 			if illust.page_count == 1:
-				dl(aapi, illust.image_urls.large, dbpath, saving_direcory_path)
+				try:
+					dl(aapi, illust.image_urls.large, dbpath, saving_direcory_path)
+				except:
+					print("Failed at " + search_tag)
+					raise Exception
 			else:
-				dl(aapi, illust.meta_pages[0].image_urls.large, dbpath, saving_direcory_path)
+				try:
+					dl(aapi, illust.meta_pages[0].image_urls.large, dbpath, saving_direcory_path)
+				except:
+					print("Failed at " + search_tag)
+					raise Exception
 		print(" ")
-		json_result = aapi.search_illust(req_auth=True, **next_qs)
+		try:
+			json_result = aapi.search_illust(req_auth=True, **next_qs)
+		except:
+			print("Failed at " + search_tag)
+			raise Exception
 		if "next_url" in json_result:
 			next_qs = aapi.parse_qs(json_result.next_url)
-			sleep(1+random.random()*2)
+			sleep(3+random.random()*10)
 		else:
 			break
 
@@ -76,20 +99,14 @@ def single_tag(api, aapi, search_tag, tag_dict):
 	f.close()
 	return tag_dict
 
-
-# ログイン処理
-api = PixivAPI()
-aapi = AppPixivAPI()
-api.login("qwerty3600", "159357")
-aapi.login("qwerty3600", "159357")
-
+aapi = login()
 tag_dict = {'sample' : 0}
-f = open("nextTagList_adjusted", "r", encoding="utf-8")
+f = open("nextTagList", "r", encoding="utf-8")
 for line in f:
 	line = line.rstrip('\r\n')
 	if line == '':
 		continue
-	tag_dict=single_tag(api, aapi, line, tag_dict)
+	tag_dict=single_tag(aapi, line, tag_dict)
 f.close()
 
 t = open("searchedTags", "r", encoding='utf8')
@@ -101,11 +118,13 @@ t.close()
 
 print('Final Tag Ranking\n')
 w = open("relatedTags.csv", "w", encoding="utf-8")
+raw = open("relatedTags", "w", encoding="utf-8")
 for k, v in sorted(tag_dict.items(), key=lambda x: -x[1]):
 	if k in searchedTags:
 		continue
 	searchedTags[k] = 1
 	w.write(k + ", " + str(v) + "\n")
+	raw.write(k + "\n")
 	if v < 100:
 		break
 
