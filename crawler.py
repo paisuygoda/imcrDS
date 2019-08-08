@@ -7,7 +7,16 @@ import os
 import sys
 import random
 import shutil
+import pickle
 # 途中で死んだときに経過を保存したい
+def save_proceedings(paused_tag, tag_dict):
+	print("Connection Aborted. Save current proceeding...")
+	with open("pausedTag.p", "wb") as f:
+        pickle.dump(paused_tag, f)
+    with open("relatedTag.p", "wb") as f:
+        pickle.dump(tag_dict, f)
+    print("Saved!")
+
 def dl(aapi, image, path, tag_path):
 	image_name = image.split("/")[-1]
 	if not os.path.exists(path+image_name):
@@ -39,6 +48,7 @@ def single_tag(aapi, search_tag, tag_dict):
 		json_result = aapi.search_illust(search_tag, search_target='exact_match_for_tags',req_auth=True)
 	except:
 		print("Failed at " + search_tag)
+		save_proceedings(search_tag, tag_dict)
 		raise Exception
 	if "next_url" in json_result:
 		next_qs = aapi.parse_qs(json_result.next_url)
@@ -74,18 +84,21 @@ def single_tag(aapi, search_tag, tag_dict):
 					dl(aapi, illust.image_urls.large, dbpath, saving_direcory_path)
 				except:
 					print("Failed at " + search_tag)
+					save_proceedings(search_tag, tag_dict)
 					raise Exception
 			else:
 				try:
 					dl(aapi, illust.meta_pages[0].image_urls.large, dbpath, saving_direcory_path)
 				except:
 					print("Failed at " + search_tag)
+					save_proceedings(search_tag, tag_dict)
 					raise Exception
 		print(" ")
 		try:
 			json_result = aapi.search_illust(req_auth=True, **next_qs)
 		except:
 			print("Failed at " + search_tag)
+			save_proceedings(search_tag, tag_dict)
 			raise Exception
 		if "next_url" in json_result:
 			next_qs = aapi.parse_qs(json_result.next_url)
@@ -99,18 +112,36 @@ def single_tag(aapi, search_tag, tag_dict):
 	f.close()
 	return tag_dict
 
+if os.path.exists("relatedTags.p"):
+	with open('relatedTags.p', mode='rb') as rt:
+        tag_dict = pickle.load(rt)
+else:
+	tag_dict = {}
+
+if os.path.exists("pausedTag.p"):
+	with open('pausedTag.p', mode='rb') as pt:
+        pausedTag = pickle.load(pt)
+        resumeSkip = True
+else:
+	pausedTag = "FIRST RUN"
+	resumeSkip = False
+
 aapi = login()
-tag_dict = {'sample' : 0}
 f = open("nextTagList", "r", encoding="utf-8")
 for line in f:
 	line = line.rstrip('\r\n')
 	if line == '':
 		continue
+	if resumeSkip:
+		if line == pausedTag:
+			resumeSkip = False
+		else:
+			continue
 	tag_dict=single_tag(aapi, line, tag_dict)
 f.close()
 
-t = open("searchedTags", "r", encoding='utf8')
-searchedTags = {'sample' : 0}
+t = open("searchedTags", "r", encoding='utf-8')
+searchedTags = {}
 for line in t:
 	line = line.rstrip('\r\n')
 	searchedTags[line] = 1
