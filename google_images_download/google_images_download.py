@@ -249,6 +249,8 @@ class googleimagesdownload:
 
             chars = url_item_name.find(',g_1:')
             chars_end = url_item_name.find(":", chars + 6)
+            print(chars, chars_end)
+            print((url_item_name[chars+5:chars_end]).replace("+", " "))
             if chars_end == -1:
                 updated_item_name = (url_item_name[chars + 5:]).replace("+", " ")
             else:
@@ -581,7 +583,6 @@ class googleimagesdownload:
 
     # Download Images
     def download_image(self,image_url,image_format,main_directory,dir_name,count,print_urls,socket_timeout,prefix,print_size,no_numbering,no_download,save_source,img_src,silent_mode,thumbnail_only,format,ignore_urls,save_unknown):
-        print(main_directory + "/" + dir_name + "/" + image_url.split('/')[-1])
         if os.path.exists(main_directory + "/" + dir_name + "/" + image_url.split('/')[-1]):
             return "success","Image already exists",None,image_url
         if not silent_mode:
@@ -992,7 +993,11 @@ class googleimagesdownload:
                             else:
                                 new_raw_html = self.download_extended_page(value,arguments['chromedriver'])
                             self.create_directories(main_directory, final_search_term,arguments['thumbnail'],arguments['thumbnail_only'])
-                            self._get_all_items(new_raw_html, main_directory, search_term + " - " + key, limit,arguments)
+                            if arguments['no_directory']:
+                                self._get_all_items(new_raw_html, main_directory, "", limit,arguments)
+
+                            else:
+                                self._get_all_items(new_raw_html, main_directory, "search_term + " - " + key", limit,arguments)
 
                     i += 1
                     total_errors = total_errors + errorCount
