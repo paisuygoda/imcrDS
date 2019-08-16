@@ -32,13 +32,13 @@ class Viewer(tk.Frame):
 			if self.cursor >= len(self.image_list):
 				self.cursor = 0
 			if self.good_mode:
-				if self.image_list[self.cursor] in self.good_list:
+				if self.image_list[self.cursor] in self.good_set:
 					break
 			else:
 				if not self.drop_mode:
-					if self.image_list[self.cursor] in self.good_list:
+					if self.image_list[self.cursor] in self.good_set:
 						continue
-				if not (self.image_list[self.cursor] in self.bad_list):
+				if not (self.image_list[self.cursor] in self.bad_set):
 					break
 
 		self.history.append(self.cursor)
@@ -68,22 +68,22 @@ class Viewer(tk.Frame):
 		self.frame.quit()
 
 	def leave(self, event):
-		if self.image_list[self.cursor] in self.bad_list:
-			self.bad_list.remove(self.image_list[self.cursor])
-		self.good_list.add(self.image_list[self.cursor])
-		with open('good_list.p', mode='wb') as gl:
-			pickle.dump(self.good_list, gl)
+		if self.image_list[self.cursor] in self.bad_set:
+			self.bad_set.remove(self.image_list[self.cursor])
+		self.good_set.add(self.image_list[self.cursor])
+		with open('good_set.p', mode='wb') as gl:
+			pickle.dump(self.good_set, gl)
 		try:
 			self.get_next()
 		except:
 			self.frame.quit()
 
 	def drop(self, event):
-		if self.image_list[self.cursor] in self.good_list:
-			self.good_list.remove(self.image_list[self.cursor])
-		self.bad_list.add(self.image_list[self.cursor])
-		with open('bad_list.p', mode='wb') as bl:
-			pickle.dump(self.bad_list, bl)
+		if self.image_list[self.cursor] in self.good_set:
+			self.good_set.remove(self.image_list[self.cursor])
+		self.bad_set.add(self.image_list[self.cursor])
+		with open('bad_set.p', mode='wb') as bl:
+			pickle.dump(self.bad_set, bl)
 		try:
 			self.get_next()
 		except:
@@ -113,20 +113,24 @@ class Viewer(tk.Frame):
 		
 		self.image_list = glob.glob(PATH + "/*")
 		
-		with open('cursor', mode='r') as rt:
-			s = rt.read()
-			self.cursor = self.image_list.index(s)
-		if os.path.exists('bad_list.p'):
-			with open('bad_list.p', mode='rb') as bl:
-				self.bad_list = pickle.load(bl)
+		if os.path.exists('cursor'):
+			with open('cursor', mode='r') as rt:
+				s = rt.read()
+				self.cursor = self.image_list.index(s)
 		else:
-			self.bad_list = set()
+			self.cursor = 0
 
-		if os.path.exists('good_list.p'):
-			with open('good_list.p', mode='rb') as gl:
-				self.good_list = pickle.load(gl)
+		if os.path.exists('bad_set.p'):
+			with open('bad_set.p', mode='rb') as bl:
+				self.bad_set = pickle.load(bl)
 		else:
-			self.good_list = set()
+			self.bad_set = set()
+
+		if os.path.exists('good_set.p'):
+			with open('good_set.p', mode='rb') as gl:
+				self.good_set = pickle.load(gl)
+		else:
+			self.good_set = set()
 
 		self.pack()
 

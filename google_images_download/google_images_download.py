@@ -33,6 +33,8 @@ import json
 import re
 import codecs
 import socket
+import pickle
+import hashlib
 
 args_list = ["keywords", "keywords_from_file", "prefix_keywords", "suffix_keywords",
              "limit", "format", "color", "color_type", "usage_rights", "size",
@@ -126,7 +128,17 @@ def user_input():
 
 class googleimagesdownload:
     def __init__(self):
-        pass
+        if os.path.exists('img_set.p'):
+            with open('img_set.p', mode='rb') as f:
+                self.img_set = pickle.load(f)
+        else:
+            self.img_set = set()
+
+        if os.path.exists('img_link.p'):
+            with open('img_link.p', mode='rb') as f:
+                self.img_link = pickle.load(f)
+        else:
+            self.img_link = {}
 
     # Downloading entire Web Document (Raw Page Content)
     def download_page(self,url):
@@ -338,8 +350,12 @@ class googleimagesdownload:
                 headers = {}
                 headers['User-Agent'] = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+
                 req1 = urllib.request.Request(searchUrl, headers=headers)
-                resp1 = urllib.request.urlopen(req1, context=context)
+                resp1 = urllib.request.urlopen(req1, context=ctx)
                 content = str(resp1.read())
                 l1 = content.find('AMhZZ')
                 l2 = content.find('&', l1)
@@ -347,7 +363,7 @@ class googleimagesdownload:
 
                 newurl = "https://www.google.com/search?tbs=sbi:" + urll + "&site=search&sa=X"
                 req2 = urllib.request.Request(newurl, headers=headers)
-                resp2 = urllib.request.urlopen(req2, context=context)
+                resp2 = urllib.request.urlopen(req2, context=ctx)
                 l3 = content.find('/search?sa=X&amp;q=')
                 l4 = content.find(';', l3 + 19)
                 urll2 = content[l3 + 19:l4]
@@ -432,8 +448,23 @@ class googleimagesdownload:
         if url:
             url = url
         elif similar_images:
-            print(similar_images)
-            keywordem = self.similar_images(similar_images)
+            keywordem = self.similar_images(similar_images)[:-4]
+            if os.path.exists('term_dict.p'):
+                with open('term_dict.p', mode='rb') as f:
+                    term_dict = pickle.load(f)
+            else:
+                term_dict = {}
+
+            terms = keywordem.split('+')
+            for term in terms:
+                if term in term_dict:
+                    term_dict[term] += 1
+                else:
+                    term_dict[term] = 1
+
+            with open('term_dict.p', mode='wb') as f:
+                    pickle.dump(term_dict, f)
+
             url = 'https://www.google.com/search?q=' + keywordem + '&espv=2&biw=1366&bih=667&site=webhp&source=lnms&tbm=isch&sa=X&ei=XosDVaCXD8TasATItgE&ved=0CAcQ_AUoAg'
         elif specific_site:
             url = 'https://www.google.com/search?q=' + quote(
@@ -583,8 +614,6 @@ class googleimagesdownload:
 
     # Download Images
     def download_image(self,image_url,image_format,main_directory,dir_name,count,print_urls,socket_timeout,prefix,print_size,no_numbering,no_download,save_source,img_src,silent_mode,thumbnail_only,format,ignore_urls,save_unknown):
-        if os.path.exists(main_directory + "/" + dir_name + "/" + image_url.split('/')[-1]):
-            return "success","Image already exists",None,image_url
         if not silent_mode:
             if print_urls or no_download:
                 print("Image URL: " + image_url)
@@ -611,6 +640,14 @@ class googleimagesdownload:
                 response = urlopen(req, None, timeout, context=ctx)
                 data = response.read()
                 response.close()
+
+                img_hash = hashlib.md5(data).hexdigest()
+                if img_hash in self.img_set:
+                    return "success","Exact image already existed",None,image_url
+                else:
+                    self.img_set.add(img_hash)
+                    with open('img_set.p', mode='wb') as f:
+                        pickle.dump(self.img_set, f)
 
                 extensions = [".jpg", ".jpeg", ".gif", ".png", ".bmp", ".svg", ".webp", ".ico"]
                 # keep everything after the last '/'
@@ -642,10 +679,23 @@ class googleimagesdownload:
                 else:
                     prefix = ''
 
-                if no_numbering:
-                    path = main_directory + "/" + dir_name + "/" + prefix + image_name
-                else:
-                    path = main_directory + "/" + dir_name + "/" + prefix + str(count) + "." + image_name
+                if not no_numbering:
+                    image_name = str(count) + "." + image_name
+
+                if os.path.exists(main_directory + "/" + dir_name + "/" + image_name):
+                    dupname_count = 1
+                    new_name = image_name
+                    while(os.path.exists(main_directory + "/" + dir_name + "/" + new_name)):
+                        names = image_name.split(".")
+                        new_name = names[-2] + "-" + str(dupname_count) + "." + names[-1]
+                        dupname_count += 1
+                    image_name = new_name
+
+                self.img_link[image_name] = image_url
+                with open('img_link.p', mode='wb') as il:
+                    pickle.dump(self.img_link, il)
+
+                path = main_directory + "/" + dir_name + "/" + prefix + image_name
 
                 try:
                     output_file = open(path, 'wb')
