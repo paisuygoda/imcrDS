@@ -11,9 +11,9 @@ import pickle
 # 途中で死んだときに経過を保存したい
 def save_proceedings(paused_tag, tag_dict):
 	print("Connection Aborted. Save current proceeding...")
-	with open("pausedTag.p", "wb") as f:
+	with open("data/pausedTag.p", "wb") as f:
         pickle.dump(paused_tag, f)
-    with open("relatedTag.p", "wb") as f:
+    with open("data/relatedTag.p", "wb") as f:
         pickle.dump(tag_dict, f)
     print("Saved!")
 
@@ -112,14 +112,14 @@ def single_tag(aapi, search_tag, tag_dict):
 	f.close()
 	return tag_dict
 
-if os.path.exists("relatedTags.p"):
-	with open('relatedTags.p', mode='rb') as rt:
+if os.path.exists("data/relatedTags.p"):
+	with open('data/relatedTags.p', mode='rb') as rt:
         tag_dict = pickle.load(rt)
 else:
 	tag_dict = {}
 
-if os.path.exists("pausedTag.p"):
-	with open('pausedTag.p', mode='rb') as pt:
+if os.path.exists("data/pausedTag.p"):
+	with open('data/pausedTag.p', mode='rb') as pt:
         pausedTag = pickle.load(pt)
         resumeSkip = True
 else:

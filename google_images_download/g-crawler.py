@@ -10,11 +10,11 @@ arguments = {"keywords":"ocean", "limit":3, "extract_metadata":True,
 			"no_directory":True, "size":">800*600"
 			}
 
-if os.path.exists('good_set.p'):
-	with open('good_set.p', mode='rb') as f:
+if os.path.exists('data/good_set.p'):
+	with open('data/good_set.p', mode='rb') as f:
 		good_list = list(pickle.load(f))
-	if os.path.exists('searched_set.p'):
-		with open('searched_set.p', mode='rb') as sl:
+	if os.path.exists('data/searched_set.p'):
+		with open('data/searched_set.p', mode='rb') as sl:
 			searched_set = pickle.load(sl)
 
 		remaining_list = []
@@ -25,7 +25,7 @@ if os.path.exists('good_set.p'):
 		searched_set = set()
 		remaining_list = good_list
 
-	with open('img_link.p', mode='rb') as sl:
+	with open('data/img_link.p', mode='rb') as sl:
 			img_link = pickle.load(sl)
 
 	for img in remaining_list:
@@ -38,11 +38,33 @@ else:
 
 print("Finished!\n")
 
-if os.path.exists('term_dict.p'):
-	with open('term_dict.p', mode='rb') as f:
+print("-------------\nImage word Ranking")
+if os.path.exists('data/term_dict.p'):
+	with open('data/term_dict.p', mode='rb') as f:
 		term_dict = pickle.load(f)
-	f = open("term_dict.csv", mode="w")
+	f = open("data/term_dict.csv", mode="w")
 	for k, v in sorted(term_dict.items(), key=lambda x: -x[1]):
 		print(k, v)
 		f.write(k + ", " + str(v) + "\n")
 	f.close()
+
+print("-------------\nDescription word Ranking")
+if os.path.exists('data/desc.p'):
+	with open('data/desc.p', mode='rb') as f:
+		term_dict = pickle.load(f)
+	f = open("data/desc.csv", mode="w")
+	for k, v in sorted(term_dict.items(), key=lambda x: -x[1]):
+		print(k, v)
+		f.write(k + ", " + str(v) + "\n")
+	f.close()
+
+print("-------------\nDomain Ranking")
+if os.path.exists('data/domain.p'):
+	with open('data/domain.p', mode='rb') as f:
+		term_dict = pickle.load(f)
+	f = open("data/domain.csv", mode="w")
+	for k, v in sorted(term_dict.items(), key=lambda x: -x[1]):
+		print(k, v)
+		f.write(k + ", " + str(v) + "\n")
+	f.close()
+	

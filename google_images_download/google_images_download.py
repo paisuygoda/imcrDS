@@ -128,17 +128,29 @@ def user_input():
 
 class googleimagesdownload:
     def __init__(self):
-        if os.path.exists('img_set.p'):
-            with open('img_set.p', mode='rb') as f:
+        if os.path.exists('data/img_set.p'):
+            with open('data/img_set.p', mode='rb') as f:
                 self.img_set = pickle.load(f)
         else:
             self.img_set = set()
 
-        if os.path.exists('img_link.p'):
-            with open('img_link.p', mode='rb') as f:
+        if os.path.exists('data/img_link.p'):
+            with open('data/img_link.p', mode='rb') as f:
                 self.img_link = pickle.load(f)
         else:
             self.img_link = {}
+
+        if os.path.exists('data/desc.p'):
+            with open('data/desc.p', mode='rb') as f:
+                self.desc = pickle.load(f)
+        else:
+            self.desc = {}
+
+        if os.path.exists('data/domain.p'):
+            with open('data/domain.p', mode='rb') as f:
+                self.domain = pickle.load(f)
+        else:
+            self.domain = {}
 
     # Downloading entire Web Document (Raw Page Content)
     def download_page(self,url):
@@ -449,8 +461,8 @@ class googleimagesdownload:
             url = url
         elif similar_images:
             keywordem = self.similar_images(similar_images)[:-4]
-            if os.path.exists('term_dict.p'):
-                with open('term_dict.p', mode='rb') as f:
+            if os.path.exists('data/term_dict.p'):
+                with open('data/term_dict.p', mode='rb') as f:
                     term_dict = pickle.load(f)
             else:
                 term_dict = {}
@@ -462,7 +474,7 @@ class googleimagesdownload:
                 else:
                     term_dict[term] = 1
 
-            with open('term_dict.p', mode='wb') as f:
+            with open('data/term_dict.p', mode='wb') as f:
                     pickle.dump(term_dict, f)
 
             url = 'https://www.google.com/search?q=' + keywordem + '&espv=2&biw=1366&bih=667&site=webhp&source=lnms&tbm=isch&sa=X&ei=XosDVaCXD8TasATItgE&ved=0CAcQ_AUoAg'
@@ -646,7 +658,7 @@ class googleimagesdownload:
                     return "success","Exact image already existed",None,image_url
                 else:
                     self.img_set.add(img_hash)
-                    with open('img_set.p', mode='wb') as f:
+                    with open('data/img_set.p', mode='wb') as f:
                         pickle.dump(self.img_set, f)
 
                 extensions = [".jpg", ".jpeg", ".gif", ".png", ".bmp", ".svg", ".webp", ".ico"]
@@ -692,7 +704,7 @@ class googleimagesdownload:
                     image_name = new_name
 
                 self.img_link[image_name] = image_url
-                with open('img_link.p', mode='wb') as il:
+                with open('data/img_link.p', mode='wb') as il:
                     pickle.dump(self.img_link, il)
 
                 path = main_directory + "/" + dir_name + "/" + prefix + image_name
@@ -829,6 +841,25 @@ class googleimagesdownload:
                 if arguments['metadata']:
                     if not arguments["silent_mode"]:
                         print("\nImage Metadata: " + str(object))
+
+                descs = object['image_description'].lower().split(" ")
+                for word in descs:
+                    if word in self.desc:
+                        self.desc[word] += 1
+                    else:
+                        self.desc[word] = 1
+                if os.path.exists('data/desc.p'):
+                    with open('data/desc.p', mode='wb') as f:
+                        pickle.dump(self.desc, f)
+
+                domain_name = object['image_source'].split("//")[1].split("/")[0]
+                if domain_name in self.domain:
+                    self.domain[domain_name] += 1
+                else:
+                    self.domain[domain_name] = 1
+                if os.path.exists('data/domain.p'):
+                    with open('data/domain.p', mode='wb') as f:
+                        pickle.dump(self.domain, f)
 
                 #download the images
                 download_status,download_message,return_image_name,absolute_path = self.download_image(object['image_link'],object['image_format'],main_directory,dir_name,count,arguments['print_urls'],arguments['socket_timeout'],arguments['prefix'],arguments['print_size'],arguments['no_numbering'],arguments['no_download'],arguments['save_source'],object['image_source'],arguments["silent_mode"],arguments["thumbnail_only"],arguments['format'],arguments['ignore_urls'],arguments['save_unknown_format'])
@@ -1022,12 +1053,11 @@ class googleimagesdownload:
 
                     #dumps into a json file
                     if arguments['extract_metadata']:
-                        try:
-                            if not os.path.exists("logs"):
-                                os.makedirs("logs")
-                        except OSError as e:
-                            print(e)
-                        json_file = open("logs/"+search_keyword[i]+".json", "w")
+                        if os.path.exists("logs.json"):
+                            with open("logs.json", "r") as f:
+                                j_items = json.load(f)
+                            items += j_items
+                        json_file = open("logs.json", "w")
                         json.dump(items, json_file, indent=4, sort_keys=True)
                         json_file.close()
 
